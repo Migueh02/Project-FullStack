@@ -7,7 +7,7 @@ export const metadata = {title: "TaskHub", description: "Gestor de tareas"};
 
 export default function RootLayout({children}: {children:ReactNode})  {
   return(
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
     <body className="min-h-screen">
       <Navbar />
       <main>{children}</main>
