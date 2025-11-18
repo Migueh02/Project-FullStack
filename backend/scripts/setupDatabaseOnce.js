@@ -71,12 +71,14 @@ async function setupDatabase() {
         }
 
         console.log('✅ Base de datos configurada correctamente');
-        await pool.end();
+        // NO cerrar el pool aquí - el servidor lo necesita
+        // await pool.end();
         return true;
     } catch (error) {
         console.error('❌ Error al configurar la base de datos:', error.message);
         console.error('Stack:', error.stack);
-        await pool.end();
+        // NO cerrar el pool aquí tampoco
+        // await pool.end();
         return false;
     }
 }
@@ -88,12 +90,14 @@ if (require.main === module) {
         if (!success) {
             console.error('⚠️ Setup falló, pero continuando con el servidor...');
         }
-        // Terminar el proceso Node.js para que el script shell continúe
-        process.exit(0);
+        console.log('✅ Setup completado, continuando con el inicio del servidor...');
+        // Terminar el proceso para que el siguiente comando se ejecute
+        process.exit(success ? 0 : 1);
     }).catch(err => {
         console.error('⚠️ Error en setup:', err.message);
-        // Terminar el proceso incluso si hay error, para que el servidor intente iniciar
-        process.exit(0);
+        // Incluso con error, intentar iniciar el servidor
+        console.log('⚠️ Continuando con el inicio del servidor a pesar del error...');
+        process.exit(1);
     });
 } else {
     module.exports = setupDatabase;

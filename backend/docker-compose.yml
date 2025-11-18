@@ -58,7 +58,7 @@ services:
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    command: sh -c "node scripts/setupDatabaseOnce.js; echo '🚀 Iniciando servidor en puerto 4000...'; node app.js"
+    command: sh -c "node scripts/setupDatabaseOnce.js && echo '🚀 Iniciando servidor en puerto 4000...' && node app.js"
 
 volumes:
   pgdata:
