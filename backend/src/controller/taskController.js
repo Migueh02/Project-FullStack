@@ -14,6 +14,7 @@ const listarTarea = async (req, res) => {
 // Crear tarea
 const crearTarea = async (req, res) => {
     try {
+        console.log('POST /api/tasks body =>', req.body);
         const { titulo, descripcion } = req.body || {};
         if (!titulo || typeof titulo !== "string") {
             return res.status(400).json({ error: "El campo 'titulo' es requerido y debe ser cadena." });

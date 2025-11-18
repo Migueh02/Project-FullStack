@@ -1,5 +1,5 @@
 const express = require('express');
-require('dontenv').config();
+require('dotenv').config();
 const pool = require('./src/config/db');
 
 const app = express();
