@@ -4,13 +4,16 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useToast } from "../../hooks/useToast";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
 interface Categoria {
     id: number;
     nombre: string;
 }
 
-export default function AddTask() {
+function AddTaskContent() {
+    const { showToast, ToastContainer } = useToast();
     const [titulo, setTitulo] = useState("");
     const [descripcion, setDescripcion] = useState("");
     const [categoriaId, setCategoriaId] = useState<number | null>(null);
@@ -31,7 +34,7 @@ export default function AddTask() {
             setCategorias(response.data);
         } catch (error) {
             console.error("Error cargando categorías:", error);
-            alert("No se pudieron cargar las categorías");
+            showToast("No se pudieron cargar las categorías", "error");
         } finally {
             setLoadingCategorias(false);
         }
@@ -55,13 +58,13 @@ export default function AddTask() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!titulo.trim()) {
-            alert("El título es requerido");
+            showToast("El título es requerido", "warning");
             return;
         }
 
         const usuarios_id = getUsuarioId();
         if (!usuarios_id) {
-            alert("Debes iniciar sesión para crear tareas");
+            showToast("Debes iniciar sesión para crear tareas", "error");
             router.push("/login");
             return;
         }
@@ -82,12 +85,12 @@ export default function AddTask() {
             setTitulo("");
             setDescripcion("");
             setCategoriaId(null);
-            alert("Tarea creada con éxito");
+            showToast("Tarea creada con éxito", "success");
             router.push("/");
         } catch (error: any) {
             console.error("Error creando tarea:", error);
             const errorMessage = error.response?.data?.error || "No se pudo crear la tarea";
-            alert(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setLoading(false);
         }
@@ -102,7 +105,9 @@ export default function AddTask() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+        <>
+            <ToastContainer />
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
             <div className="max-w-2xl mx-auto px-4 py-8">
                 <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-gray-100 animate-fade-in">
                     <div className="mb-6">
@@ -213,5 +218,14 @@ export default function AddTask() {
                 </div>
             </div>
         </div>
+        </>
+    );
+}
+
+export default function AddTask() {
+    return (
+        <ProtectedRoute>
+            <AddTaskContent />
+        </ProtectedRoute>
     );
 }

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useToast } from "../hooks/useToast";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 // Definimos la estructura del tipo de dato que esperamos
 interface Task {
@@ -20,6 +22,7 @@ interface Categoria {
 }
 
 export default function Home() {
+    const { showToast, ToastContainer } = useToast();
     // useState -> con el tipo Task[]
     const [tasks, setTasks] = useState<Task[]>([]);
     const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -71,7 +74,7 @@ export default function Home() {
             setTasks(tasksResponse.data);
         } catch (error) {
             console.error("Error cargando datos:", error);
-            alert("No se pudieron cargar las tareas");
+            showToast("No se pudieron cargar las tareas", "error");
         } finally {
             setLoading(false);
         }
@@ -93,7 +96,7 @@ export default function Home() {
 
     const handleActualizar = async (id: number) => {
         if (!editTitulo.trim()) {
-            alert("El título es requerido");
+            showToast("El título es requerido", "warning");
             return;
         }
 
@@ -111,7 +114,7 @@ export default function Home() {
             }
 
             await axios.put(`http://localhost:4000/api/tasks/${id}`, body);
-            alert("Tarea actualizada con éxito");
+            showToast("Tarea actualizada con éxito", "success");
             setEditingId(null);
             setEditTitulo("");
             setEditDescripcion("");
@@ -120,26 +123,34 @@ export default function Home() {
         } catch (error: any) {
             console.error("Error actualizando tarea:", error);
             const errorMessage = error.response?.data?.error || "No se pudo actualizar la tarea";
-            alert(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEliminar = async (id: number) => {
-        if (!confirm("¿Estás seguro de que deseas eliminar esta tarea?")) {
-            return;
-        }
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        id: number | null;
+    }>({ isOpen: false, id: null });
+
+    const handleEliminarClick = (id: number) => {
+        setConfirmDialog({ isOpen: true, id });
+    };
+
+    const handleEliminar = async () => {
+        if (!confirmDialog.id) return;
 
         try {
-            setDeletingId(id);
-            await axios.delete(`http://localhost:4000/api/tasks/${id}`);
-            alert("Tarea eliminada con éxito");
+            setDeletingId(confirmDialog.id);
+            setConfirmDialog({ isOpen: false, id: null });
+            await axios.delete(`http://localhost:4000/api/tasks/${confirmDialog.id}`);
+            showToast("Tarea eliminada con éxito", "success");
             cargarDatos();
         } catch (error: any) {
             console.error("Error eliminando tarea:", error);
             const errorMessage = error.response?.data?.error || "No se pudo eliminar la tarea";
-            alert(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setDeletingId(null);
         }
@@ -164,12 +175,24 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+        <>
+            <ToastContainer />
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                title="Eliminar Tarea"
+                message="¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer."
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                type="danger"
+                onConfirm={handleEliminar}
+                onCancel={() => setConfirmDialog({ isOpen: false, id: null })}
+            />
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
             <div className="max-w-7xl mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="mb-8 animate-fade-in">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                        <div>
+    <div>
                             <h1 className="text-4xl md:text-5xl font-bold gradient-text mb-2">
                                 📋 Mis Tareas
                             </h1>
@@ -321,7 +344,7 @@ export default function Home() {
                                                 ✏️ Editar
                                             </button>
                                             <button
-                                                onClick={() => handleEliminar(t.id)}
+                                                onClick={() => handleEliminarClick(t.id)}
                                                 disabled={deletingId === t.id}
                                                 className="btn-danger flex-1 text-sm py-2 disabled:opacity-50"
                                             >
@@ -337,11 +360,12 @@ export default function Home() {
                                         </div>
                                     </>
                                 )}
-                            </div>
-                        ))}
+            </div>
+          ))}
                     </div>
                 )}
             </div>
         </div>
+        </>
     );
 }

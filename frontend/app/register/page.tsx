@@ -4,37 +4,37 @@ import { useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useToast } from "../../hooks/useToast";
 
 export default function RegisterPage() {
+    const { showToast, ToastContainer } = useToast();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError("");
 
         // Validaciones
         if (!email.trim()) {
-            setError("El email es requerido");
+            showToast("El email es requerido", "warning");
             return;
         }
 
         if (!password.trim()) {
-            setError("La contraseña es requerida");
+            showToast("La contraseña es requerida", "warning");
             return;
         }
 
         if (password.trim().length < 6) {
-            setError("La contraseña debe tener al menos 6 caracteres");
+            showToast("La contraseña debe tener al menos 6 caracteres", "warning");
             return;
         }
 
         if (password !== confirmPassword) {
-            setError("Las contraseñas no coinciden");
+            showToast("Las contraseñas no coinciden", "warning");
             return;
         }
 
@@ -50,38 +50,35 @@ export default function RegisterPage() {
                 localStorage.setItem("userId", response.data.userId.toString());
                 localStorage.setItem("userEmail", response.data.email || email);
                 
-                // Redirigir a la página principal
-                router.push("/");
+                showToast("¡Cuenta creada exitosamente! Bienvenido a TaskHub", "success");
+                
+                // Redirigir a la página principal después de un breve delay
+                setTimeout(() => {
+                    router.push("/");
+                }, 500);
             } else {
-                setError(response.data.error || "Error al registrar usuario");
+                showToast(response.data.error || "Error al registrar usuario", "error");
             }
         } catch (error: any) {
             console.error("Error en registro:", error);
             const errorMessage = error.response?.data?.error || "Error al registrar usuario. Intenta nuevamente.";
-            setError(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center px-4">
-            <div className="max-w-md w-full">
-                <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-gray-100 animate-fade-in">
-                    <div className="text-center mb-8">
-                        <div className="text-6xl mb-4">✨</div>
-                        <h2 className="text-3xl font-bold gradient-text mb-2">Crear Cuenta</h2>
-                        <p className="text-gray-600">Únete a TaskHub y organiza tu vida</p>
-                    </div>
-                    
-                    {error && (
-                        <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 animate-fade-in">
-                            <div className="flex items-center gap-2">
-                                <span>⚠️</span>
-                                <span className="font-medium">{error}</span>
-                            </div>
+        <>
+            <ToastContainer />
+            <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center px-4">
+                <div className="max-w-md w-full">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-gray-100 animate-fade-in">
+                        <div className="text-center mb-8">
+                            <div className="text-6xl mb-4">✨</div>
+                            <h2 className="text-3xl font-bold gradient-text mb-2">Crear Cuenta</h2>
+                            <p className="text-gray-600">Únete a TaskHub y organiza tu vida</p>
                         </div>
-                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
@@ -160,5 +157,6 @@ export default function RegisterPage() {
                 </div>
             </div>
         </div>
+        </>
     );
 }

@@ -2,13 +2,17 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useToast } from "../../hooks/useToast";
+import ProtectedRoute from "../../components/ProtectedRoute";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 interface Categoria {
     id: number;
     nombre: string;
 }
 
-export default function CategoriasPage() {
+function CategoriasPageContent() {
+    const { showToast, ToastContainer } = useToast();
     const [categorias, setCategorias] = useState<Categoria[]>([]);
     const [nombre, setNombre] = useState("");
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -16,6 +20,10 @@ export default function CategoriasPage() {
     const [loading, setLoading] = useState(false);
     const [loadingList, setLoadingList] = useState(true);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        id: number | null;
+    }>({ isOpen: false, id: null });
 
     // Cargar categorías al montar el componente
     useEffect(() => {
@@ -29,7 +37,7 @@ export default function CategoriasPage() {
             setCategorias(response.data);
         } catch (error) {
             console.error("Error cargando categorías:", error);
-            alert("No se pudieron cargar las categorías");
+            showToast("No se pudieron cargar las categorías", "error");
         } finally {
             setLoadingList(false);
         }
@@ -38,7 +46,7 @@ export default function CategoriasPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!nombre.trim()) {
-            alert("El nombre de la categoría es requerido");
+            showToast("El nombre de la categoría es requerido", "warning");
             return;
         }
 
@@ -46,12 +54,12 @@ export default function CategoriasPage() {
             setLoading(true);
             await axios.post("http://localhost:4000/api/categorias", { nombre: nombre.trim() });
             setNombre("");
-            alert("Categoría creada con éxito");
+            showToast("Categoría creada con éxito", "success");
             cargarCategorias();
         } catch (error: any) {
             console.error("Error creando categoría:", error);
             const errorMessage = error.response?.data?.error || "No se pudo crear la categoría";
-            alert(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setLoading(false);
         }
@@ -69,40 +77,43 @@ export default function CategoriasPage() {
 
     const handleActualizar = async (id: number) => {
         if (!editNombre.trim()) {
-            alert("El nombre de la categoría es requerido");
+            showToast("El nombre de la categoría es requerido", "warning");
             return;
         }
 
         try {
             setLoading(true);
             await axios.put(`http://localhost:4000/api/categorias/${id}`, { nombre: editNombre.trim() });
-            alert("Categoría actualizada con éxito");
+            showToast("Categoría actualizada con éxito", "success");
             setEditingId(null);
             setEditNombre("");
             cargarCategorias();
         } catch (error: any) {
             console.error("Error actualizando categoría:", error);
             const errorMessage = error.response?.data?.error || "No se pudo actualizar la categoría";
-            alert(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEliminar = async (id: number) => {
-        if (!confirm("¿Estás seguro de que deseas eliminar esta categoría?")) {
-            return;
-        }
+    const handleEliminarClick = (id: number) => {
+        setConfirmDialog({ isOpen: true, id });
+    };
+
+    const handleEliminarConfirm = async () => {
+        if (!confirmDialog.id) return;
 
         try {
-            setDeletingId(id);
-            await axios.delete(`http://localhost:4000/api/categorias/${id}`);
-            alert("Categoría eliminada con éxito");
+            setDeletingId(confirmDialog.id);
+            setConfirmDialog({ isOpen: false, id: null });
+            await axios.delete(`http://localhost:4000/api/categorias/${confirmDialog.id}`);
+            showToast("Categoría eliminada con éxito", "success");
             cargarCategorias();
         } catch (error: any) {
             console.error("Error eliminando categoría:", error);
             const errorMessage = error.response?.data?.error || "No se pudo eliminar la categoría";
-            alert(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setDeletingId(null);
         }
@@ -117,7 +128,19 @@ export default function CategoriasPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50 to-pink-50">
+        <>
+            <ToastContainer />
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                title="Eliminar Categoría"
+                message="¿Estás seguro de que deseas eliminar esta categoría? Esta acción no se puede deshacer."
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                type="danger"
+                onConfirm={handleEliminarConfirm}
+                onCancel={() => setConfirmDialog({ isOpen: false, id: null })}
+            />
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50 to-pink-50">
             <div className="max-w-6xl mx-auto px-4 py-8">
                 <div className="mb-8 animate-fade-in">
                     <h1 className="text-4xl md:text-5xl font-bold gradient-text mb-2">
@@ -235,7 +258,7 @@ export default function CategoriasPage() {
                                                     ✏️ Editar
                                                 </button>
                                                 <button
-                                                    onClick={() => handleEliminar(categoria.id)}
+                                                    onClick={() => handleEliminarClick(categoria.id)}
                                                     disabled={deletingId === categoria.id}
                                                     className="btn-danger flex-1 text-sm py-2 disabled:opacity-50"
                                                 >
@@ -258,5 +281,14 @@ export default function CategoriasPage() {
                 </div>
             </div>
         </div>
+        </>
+    );
+}
+
+export default function CategoriasPage() {
+    return (
+        <ProtectedRoute>
+            <CategoriasPageContent />
+        </ProtectedRoute>
     );
 }
