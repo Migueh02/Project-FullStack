@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+coverage
+.nyc_output
+*.test.js
+tests
+.vscode
+.idea
+
